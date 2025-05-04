@@ -28,4 +28,4 @@
 ```
 
 ### 安装
-拓展 - 安装拓展 - https://github.com/wickedcode01/image-auto-generation
+拓展 - 安装拓展 - https://github.com/wickedcode01/st-image-auto-generation
