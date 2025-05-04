@@ -85,12 +85,7 @@ function createSettings() {
     // 初始化选择框的值
     $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
     
-    // 重用SillyTavern的内置抽屉事件处理
-    $(document).off("click", ".inline-drawer-toggle").on("click", ".inline-drawer-toggle", function () {
-        $(this).parent().children(".inline-drawer-content").toggle();
-        $(this).children(".inline-drawer-icon").toggleClass("down");
-        $(this).children(".inline-drawer-icon").toggleClass("up");
-    });
+    // 不再手动添加事件处理，让SillyTavern的系统处理drawer toggle
     
     updateUiFromSettings();
 }
@@ -115,11 +110,15 @@ function onExtensionButtonClick() {
                 scrollTop: container.offset().top - $('#rm_extensions_block').offset().top + $('#rm_extensions_block').scrollTop()
             }, 500);
             
-            // 如果设置面板是折叠的，展开它
+            // 使用SillyTavern原生的抽屉展开方式
+            // 检查抽屉内容是否可见
             const drawerContent = container.find('.inline-drawer-content');
-            const toggleButton = container.find('.inline-drawer-toggle');
-            if (drawerContent.is(':hidden')) {
-                toggleButton.trigger('click');
+            const drawerHeader = container.find('.inline-drawer-header');
+            
+            // 只有当内容被隐藏时才触发展开
+            if (drawerContent.is(':hidden') && drawerHeader.length) {
+                // 直接使用原生点击事件触发，而不做任何内部处理
+                drawerHeader.trigger('click');
             }
         }
     }, 500);
