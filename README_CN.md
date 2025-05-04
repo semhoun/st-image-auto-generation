@@ -4,7 +4,9 @@
 
 ### 描述
 当检测到AI消息中的 `<img prompt="..."/>` 标签时，此扩展会自动生成图像。它与SillyTavern的图像生成功能无缝集成，允许您的AI角色在回复中包含图像。
+
 **需要用世界书指导AI如何生成**
+
 **请确保你酒馆自带的生图功能能够使用**
 ### 功能
 - 自动检测并处理AI消息中的图像生成请求
@@ -26,4 +28,4 @@
 ```
 
 ### 安装
-拓展 - 安装拓展 - https://github.com/wickedcode01/image-auto-generation
+拓展 - 安装拓展 - https://github.com/wickedcode01/st-image-auto-generation
