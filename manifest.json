@@ -1,0 +1,13 @@
+{
+    "display_name": "Image Auto Generation",
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "author": "wickedcode01",
+    "version": "0.0.1",
+    "homePage": "https://github.com/SillyTavern/SillyTavern",
+    "auto_update": true,
+    "i18n": {
+        "zh-cn": "i18n/zh-cn.json"
+    }
+}
