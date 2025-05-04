@@ -28,4 +28,4 @@ Here's a picture of a cat:
 ```
 
 ### Installation
-Extension - Install Extension - https://github.com/wickedcode01/image-auto-generation
+Extension - Install Extension - https://github.com/wickedcode01/st-image-auto-generation
