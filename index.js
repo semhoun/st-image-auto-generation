@@ -31,7 +31,7 @@ async function loadSettings() {
     if (Object.keys(extension_settings[extensionName]).length === 0) {
         Object.assign(extension_settings[extensionName], defaultSettings);
     }
-    
+
     updateUiFromSettings();
 }
 
@@ -39,7 +39,7 @@ async function loadSettings() {
 function updateUiFromSettings() {
     // 根据insertType设置开关状态
     $("#auto_generation").toggleClass('selected', extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED);
-    
+
     if ($("#image_generation_insert_type").length) {
         $("#image_generation_insert_type").val(extension_settings[extensionName].insertType);
     }
@@ -64,29 +64,29 @@ function createSettings() {
             </div>
         </div>
     </div>`;
-    
+
     // 创建一个容器来存放设置，确保其正确显示在扩展设置面板中
     if (!$("#image_auto_generation_container").length) {
         $("#extensions_settings2").append('<div id="image_auto_generation_container" class="extension_container"></div>');
     }
-    
+
     // 将设置添加到容器中
     $("#image_auto_generation_container").empty().append(settingsHtml);
-    
+
     // 添加设置变更事件处理
-    $('#image_generation_insert_type').on('change', function() {
+    $('#image_generation_insert_type').on('change', function () {
         const newValue = $(this).val();
         extension_settings[extensionName].insertType = newValue;
         updateUiFromSettings();
         saveSettingsDebounced();
         console.log(`Image insert type changed to: ${newValue}`);
     });
-    
+
     // 初始化选择框的值
     $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
-    
+
     // 不再手动添加事件处理，让SillyTavern的系统处理drawer toggle
-    
+
     updateUiFromSettings();
 }
 
@@ -94,12 +94,12 @@ function createSettings() {
 function onExtensionButtonClick() {
     // 直接访问扩展设置面板
     const extensionsDrawer = $('#extensions-settings-button .drawer-toggle');
-    
+
     // 如果抽屉是关闭的，点击打开它
     if ($('#rm_extensions_block').hasClass('closedDrawer')) {
         extensionsDrawer.trigger('click');
     }
-    
+
     // 等待抽屉打开后滚动到我们的设置容器
     setTimeout(() => {
         // 找到我们的设置容器
@@ -109,12 +109,12 @@ function onExtensionButtonClick() {
             $('#rm_extensions_block').animate({
                 scrollTop: container.offset().top - $('#rm_extensions_block').offset().top + $('#rm_extensions_block').scrollTop()
             }, 500);
-            
+
             // 使用SillyTavern原生的抽屉展开方式
             // 检查抽屉内容是否可见
             const drawerContent = container.find('.inline-drawer-content');
             const drawerHeader = container.find('.inline-drawer-header');
-            
+
             // 只有当内容被隐藏时才触发展开
             if (drawerContent.is(':hidden') && drawerHeader.length) {
                 // 直接使用原生点击事件触发，而不做任何内部处理
@@ -125,20 +125,20 @@ function onExtensionButtonClick() {
 }
 
 // 初始化扩展
-$(function() {
-    (async function() {
+$(function () {
+    (async function () {
         const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
         $("#extensionsMenu").append(settingsHtml);
         // 修改点击事件，打开设置面板而不是切换状态
         $("#auto_generation").off('click').on("click", onExtensionButtonClick);
-        
+
         loadSettings();
-        
+
         // 创建设置
         createSettings();
-        
+
         // 确保设置面板可见时，选择框的值是正确的
-        $('#extensions-settings-button').on('click', function() {
+        $('#extensions-settings-button').on('click', function () {
             setTimeout(() => {
                 if ($('#image_generation_insert_type').length) {
                     $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
@@ -152,6 +152,7 @@ $(function() {
 eventSource.on(event_types.MESSAGE_RECEIVED, handleIncomingMessage);
 
 async function handleIncomingMessage() {
+    console.log("handleIncomingMessage");
     // 如果禁用了功能，直接返回
     if (extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
         return;
@@ -159,7 +160,7 @@ async function handleIncomingMessage() {
 
     const context = getContext();
     const message = context.chat[context.chat.length - 1];
-    
+
     // 检查是否是AI消息
     if (!message || message.is_user) {
         return;
@@ -170,71 +171,74 @@ async function handleIncomingMessage() {
     const matches = [...message.mes.matchAll(imgTagRegex)];
 
     if (matches.length > 0) {
-        toastr.info(`Generating ${matches.length} images...`);
-        try {
-            const insertType = extension_settings[extensionName].insertType;
-            
-            if (insertType === INSERT_TYPE.INLINE) {
-                // 在当前消息中插入图片
-                // 初始化message.extra
-                if (!message.extra) {
-                    message.extra = {};
-                }
-                
-                // 初始化image_swipes数组
-                if (!Array.isArray(message.extra.image_swipes)) {
-                    message.extra.image_swipes = [];
-                }
-                
-                // 如果已有图片，添加到swipes
-                if (message.extra.image && !message.extra.image_swipes.includes(message.extra.image)) {
-                    message.extra.image_swipes.push(message.extra.image);
-                }
-                
-                // 获取消息元素用于稍后更新
-                const messageElement = $(`.mes[mesid="${context.chat.length - 1}"]`);
-                
-                // 处理每个匹配的图片标签
-                for (let i = 0; i < matches.length; i++) {
-                    const prompt = matches[i][1];
-                    
-                    // 使用 ToolManager 调用图片生成功能
-                    const result = await ToolManager.invokeFunctionTool('GenerateImage', {
-                        prompt: prompt,
-                        quiet: 'true'
-                    });
-                    
-                    let imageUrl = result;
-                    if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
-                        // 添加图片到swipes数组
-                        message.extra.image_swipes.push(imageUrl);
-                        
-                        // 设置第一张图片为主图片，或更新为最新生成的图片
-                        message.extra.image = imageUrl;
-                        message.extra.title = prompt;
-                        message.extra.inline_image = true;
-                        
-                        // 更新UI
-                        appendMediaToMessage(message, messageElement);
-                        
-                        // 保存聊天记录
-                        await context.saveChat();
+        // 将图片生成延迟到下个事件循环 防阻塞UI渲染
+        setTimeout(async () => {
+            try {
+                toastr.info(`Generating ${matches.length} images...`);
+                const insertType = extension_settings[extensionName].insertType;
+
+                if (insertType === INSERT_TYPE.INLINE) {
+                    // 在当前消息中插入图片
+                    // 初始化message.extra
+                    if (!message.extra) {
+                        message.extra = {};
+                    }
+
+                    // 初始化image_swipes数组
+                    if (!Array.isArray(message.extra.image_swipes)) {
+                        message.extra.image_swipes = [];
+                    }
+
+                    // 如果已有图片，添加到swipes
+                    if (message.extra.image && !message.extra.image_swipes.includes(message.extra.image)) {
+                        message.extra.image_swipes.push(message.extra.image);
+                    }
+
+                    // 获取消息元素用于稍后更新
+                    const messageElement = $(`.mes[mesid="${context.chat.length - 1}"]`);
+
+                    // 处理每个匹配的图片标签
+                    for (let i = 0; i < matches.length; i++) {
+                        const prompt = matches[i][1];
+
+                        // 使用 ToolManager 调用图片生成功能
+                        const result = await ToolManager.invokeFunctionTool('GenerateImage', {
+                            prompt: prompt,
+                            quiet: 'true'
+                        });
+
+                        let imageUrl = result;
+                        if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+                            // 添加图片到swipes数组
+                            message.extra.image_swipes.push(imageUrl);
+
+                            // 设置第一张图片为主图片，或更新为最新生成的图片
+                            message.extra.image = imageUrl;
+                            message.extra.title = prompt;
+                            message.extra.inline_image = true;
+
+                            // 更新UI
+                            appendMediaToMessage(message, messageElement);
+
+                            // 保存聊天记录
+                            await context.saveChat();
+                        }
+                    }
+                } else if (insertType === INSERT_TYPE.NEW_MESSAGE) {
+                    // 在新的一条消息中插入图片
+                    for (let i = 0; i < matches.length; i++) {
+                        const prompt = matches[i][1];
+                        await ToolManager.invokeFunctionTool('GenerateImage', {
+                            prompt: prompt
+                        });
                     }
                 }
-            } else if (insertType === INSERT_TYPE.NEW_MESSAGE) {
-                // 在新的一条消息中插入图片
-                for (let i = 0; i < matches.length; i++) {
-                    const prompt = matches[i][1];
-                    await ToolManager.invokeFunctionTool('GenerateImage', {
-                        prompt: prompt
-                    });
-                }
+
+                toastr.success(`${matches.length} images generated successfully`);
+            } catch (error) {
+                toastr.error('Image generation error:', error);
+                console.error('Image generation error:', error);
             }
-            
-            toastr.success(`${matches.length} images generated successfully`);
-        } catch (error) {
-            toastr.error('Image generation error:', error);
-            console.error('Image generation error:', error);
-        }
+        }, 0);
     }
 }
