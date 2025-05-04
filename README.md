@@ -4,7 +4,9 @@
 
 ### Description
 This extension automatically generates images when it detects `<img prompt="..."/>` tags in AI messages. It seamlessly integrates with SillyTavern's image generation capabilities, allowing your AI characters to include images in their responses.
+
 **Need to use a lore book to instruct AI how to generate images**
+
 **Make sure your ST built-in image generation function works properly**
 ### Features
 - Automatically detects and processes image generation requests in AI messages
