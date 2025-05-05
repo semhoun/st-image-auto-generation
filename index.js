@@ -111,6 +111,11 @@ async function createSettings(settingsHtml) {
         saveSettingsDebounced();
     });
 
+    $('#prompt_injection_regex').on('input', function () {
+        extension_settings[extensionName].promptInjection.regex = $(this).val();
+        saveSettingsDebounced();
+    });
+
     $('#prompt_injection_position').on('change', function () {
         extension_settings[extensionName].promptInjection.position = $(this).val();
         saveSettingsDebounced();
@@ -189,12 +194,67 @@ $(function () {
         });
     })();
 });
+// 获取消息角色
+function getMesRole() {
+    // 确保对象路径存在
+    if (!extension_settings[extensionName] ||
+        !extension_settings[extensionName].promptInjection ||
+        !extension_settings[extensionName].promptInjection.position) {
+        return 'system'; // 默认返回system角色
+    }
+
+    switch (extension_settings[extensionName].promptInjection.position) {
+        case 'deep_system':
+            return 'system';
+        case 'deep_user':
+            return 'user';
+        case 'deep_assistant':
+            return 'assistant';
+        default:
+            return 'system';
+    }
+}
+
+// 监听CHAT_COMPLETION_PROMPT_READY事件以注入提示词
+eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function(eventData) {
+    try {
+        // 确保设置对象和promptInjection对象都存在
+        if (!extension_settings[extensionName] ||
+            !extension_settings[extensionName].promptInjection ||
+            !extension_settings[extensionName].promptInjection.enabled ||
+            extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
+            return;
+        }
+
+        const prompt = extension_settings[extensionName].promptInjection.prompt;
+        const depth = extension_settings[extensionName].promptInjection.depth || 0;
+        const role = getMesRole();
+
+        console.log(`[${extensionName}] 准备注入提示词: 角色=${role}, 深度=${depth}`);
+        console.log(`[${extensionName}] 提示词内容: ${prompt.substring(0, 50)}...`);
+        
+        // 根据depth参数决定插入位置
+        if (depth === 0) {
+            // 添加到末尾
+            eventData.chat.push({ role: role, content: prompt });
+            console.log(`[${extensionName}] 提示词已添加到聊天末尾`);
+        } else {
+            // 从末尾向前插入
+            eventData.chat.splice(-depth, 0, { role: role, content: prompt });
+            console.log(`[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`);
+        }
+        
+        // 打印完整的eventData.chat用于调试
+        console.log(`[${extensionName}] 消息数量: ${eventData.chat.length}`);
+        console.log(`[${extensionName}] 最后几条消息角色: ${eventData.chat.slice(-3).map(m => m.role).join(', ')}`);
+    } catch (error) {
+        console.error(`[${extensionName}] 提示词注入错误:`, error);
+        toastr.error(`提示词注入错误: ${error}`);
+    }
+});
 
 // 监听消息接收事件
 eventSource.on(event_types.MESSAGE_RECEIVED, handleIncomingMessage);
-
-
-
 async function handleIncomingMessage() {
     // 确保设置对象存在
     if (!extension_settings[extensionName] ||
@@ -300,51 +360,3 @@ async function handleIncomingMessage() {
     }
 }
 
-// 获取消息角色
-function getMesRole() {
-    // 确保对象路径存在
-    if (!extension_settings[extensionName] ||
-        !extension_settings[extensionName].promptInjection ||
-        !extension_settings[extensionName].promptInjection.position) {
-        return 'system'; // 默认返回system角色
-    }
-
-    switch (extension_settings[extensionName].promptInjection.position) {
-        case 'deep_system':
-            return 'system';
-        case 'deep_user':
-            return 'user';
-        case 'deep_assistant':
-            return 'assistant';
-        default:
-            return 'system';
-    }
-}
-
-
-
-// Not recommended, prefer to use official function setExtensionPrompt
-eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
-
-async function onChatCompletionPromptReady(eventData) {
-    try {
-        // 确保设置对象和promptInjection对象都存在
-        if (!extension_settings[extensionName] ||
-            !extension_settings[extensionName].promptInjection ||
-            !extension_settings[extensionName].promptInjection.enabled ||
-            extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
-            return;
-        }
-
-        const prompt = extension_settings[extensionName].promptInjection.prompt
-        if (extension_settings[extensionName].promptInjection.depth === 0) {
-            eventData.chat.push({ role: getMesRole(), content: prompt });
-        } else {
-            eventData.chat.splice(-extension_settings[extensionName].promptInjection.depth, 0, { role: getMesRole(), content: prompt });
-        }
-
-    } catch (error) {
-        console.error('Prompt injection error:', error);
-        toastr.error(`Prompt injection error: ${error}`);
-    }
-}
