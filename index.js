@@ -8,7 +8,7 @@ import { extension_settings, getContext } from "../../../extensions.js";
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
 import { ToolManager } from "../../../../scripts/tool-calling.js";
 import { appendMediaToMessage } from "../../../../script.js";
-import { getRequestHeaders } from "../../../../script.js";
+import { regexFromString } from '../../../utils.js';
 // 扩展名称和路径
 const extensionName = "image-auto-generation";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -22,72 +22,109 @@ const INSERT_TYPE = {
 
 // 默认设置
 const defaultSettings = {
-    insertType: INSERT_TYPE.DISABLED
+    insertType: INSERT_TYPE.DISABLED,
+    promptInjection: {
+        enabled: true,
+        prompt: `
+        <image_generation>
+        You must insert a <img prompt="example prompt" /> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images
+        </image_generation>
+        `,
+        regex: '<img(?:\\s+[^>]*)?\\s+prompt="([^"]*)"(?:\\s+[^>]*)?\\s*\\/?>',
+        position: 'deep_system', // deep_system, deep_user, deep_assistant
+        depth: 0 // 0表示添加到末尾，>0表示从末尾往前数第几个位置
+    }
 };
+
+// 从设置更新UI
+function updateUI() {
+    // 根据insertType设置开关状态
+    $("#auto_generation").toggleClass('selected', extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED);
+
+    // 只在表单元素存在时更新它们
+    if ($("#image_generation_insert_type").length) {
+        $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
+        $('#prompt_injection_enabled').prop('checked', extension_settings[extensionName].promptInjection.enabled);
+        $('#prompt_injection_text').val(extension_settings[extensionName].promptInjection.prompt);
+        $('#prompt_injection_regex').val(extension_settings[extensionName].promptInjection.regex);
+        $('#prompt_injection_position').val(extension_settings[extensionName].promptInjection.position);
+        $('#prompt_injection_depth').val(extension_settings[extensionName].promptInjection.depth);
+    }
+}
 
 // 加载设置
 async function loadSettings() {
     extension_settings[extensionName] = extension_settings[extensionName] || {};
+
+    // 如果设置为空或缺少必要属性，使用默认设置
     if (Object.keys(extension_settings[extensionName]).length === 0) {
         Object.assign(extension_settings[extensionName], defaultSettings);
+    } else {
+        // 确保promptInjection对象存在
+        if (!extension_settings[extensionName].promptInjection) {
+            extension_settings[extensionName].promptInjection = defaultSettings.promptInjection;
+        } else {
+            // 确保promptInjection的所有子属性都存在
+            const defaultPromptInjection = defaultSettings.promptInjection;
+            for (const key in defaultPromptInjection) {
+                if (extension_settings[extensionName].promptInjection[key] === undefined) {
+                    extension_settings[extensionName].promptInjection[key] = defaultPromptInjection[key];
+                }
+            }
+        }
+
+        // 确保insertType属性存在
+        if (extension_settings[extensionName].insertType === undefined) {
+            extension_settings[extensionName].insertType = defaultSettings.insertType;
+        }
     }
 
-    updateUiFromSettings();
-}
-
-// 从设置更新UI
-function updateUiFromSettings() {
-    // 根据insertType设置开关状态
-    $("#auto_generation").toggleClass('selected', extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED);
-
-    if ($("#image_generation_insert_type").length) {
-        $("#image_generation_insert_type").val(extension_settings[extensionName].insertType);
-    }
+    updateUI();
 }
 
 // 创建设置页面
-function createSettings() {
-    const settingsHtml = `
-    <div class="inline-drawer">
-        <div class="inline-drawer-toggle inline-drawer-header">
-            <b data-i18n="Image Auto Generation">Image Auto Generation</b>
-            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-        </div>
-        <div class="inline-drawer-content">
-            <div class="flex-container flexnowrap">
-                <label for="image_generation_insert_type" class="flex1" data-i18n="Image Insert Type">Image Insert Type</label>
-                <select id="image_generation_insert_type" class="flex1">
-                    <option data-i18n="Insert In Current Message" value="${INSERT_TYPE.INLINE}">Insert In Current Message</option>
-                    <option data-i18n="Create New Message" value="${INSERT_TYPE.NEW_MESSAGE}">Create New Message</option>
-                    <option data-i18n="Disable" value="${INSERT_TYPE.DISABLED}">Disable</option>
-                </select>
-            </div>
-        </div>
-    </div>`;
-
+async function createSettings(settingsHtml) {
     // 创建一个容器来存放设置，确保其正确显示在扩展设置面板中
     if (!$("#image_auto_generation_container").length) {
         $("#extensions_settings2").append('<div id="image_auto_generation_container" class="extension_container"></div>');
     }
 
-    // 将设置添加到容器中
+    // 使用传入的settingsHtml而不是重新获取
     $("#image_auto_generation_container").empty().append(settingsHtml);
 
     // 添加设置变更事件处理
     $('#image_generation_insert_type').on('change', function () {
         const newValue = $(this).val();
         extension_settings[extensionName].insertType = newValue;
-        updateUiFromSettings();
+        updateUI();
         saveSettingsDebounced();
-        console.log(`Image insert type changed to: ${newValue}`);
     });
 
-    // 初始化选择框的值
-    $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
+    // 添加提示词注入设置的事件处理
+    $('#prompt_injection_enabled').on('change', function () {
+        extension_settings[extensionName].promptInjection.enabled = $(this).prop('checked');
+        saveSettingsDebounced();
+    });
 
-    // 不再手动添加事件处理，让SillyTavern的系统处理drawer toggle
+    $('#prompt_injection_text').on('input', function () {
+        extension_settings[extensionName].promptInjection.prompt = $(this).val();
+        saveSettingsDebounced();
+    });
 
-    updateUiFromSettings();
+    $('#prompt_injection_position').on('change', function () {
+        extension_settings[extensionName].promptInjection.position = $(this).val();
+        saveSettingsDebounced();
+    });
+
+    // 深度设置事件处理
+    $('#prompt_injection_depth').on('input', function () {
+        const value = parseInt(String($(this).val()));
+        extension_settings[extensionName].promptInjection.depth = isNaN(value) ? 0 : value;
+        saveSettingsDebounced();
+    });
+
+    // 初始化设置值
+    updateUI();
 }
 
 // 设置变更处理函数
@@ -127,22 +164,27 @@ function onExtensionButtonClick() {
 // 初始化扩展
 $(function () {
     (async function () {
+        // 获取设置HTML (只获取一次)
         const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
-        $("#extensionsMenu").append(settingsHtml);
+
+        // 添加扩展到菜单
+        $("#extensionsMenu").append(`<div id="auto_generation" class="list-group-item flex-container flexGap5">
+            <div class="fa-solid fa-robot"></div>
+            <span data-i18n="Image Auto Generation">Image Auto Generation</span>
+        </div>`);
+
         // 修改点击事件，打开设置面板而不是切换状态
         $("#auto_generation").off('click').on("click", onExtensionButtonClick);
 
-        loadSettings();
+        await loadSettings();
 
-        // 创建设置
-        createSettings();
+        // 创建设置 - 将获取的HTML传递给createSettings
+        await createSettings(settingsHtml);
 
-        // 确保设置面板可见时，选择框的值是正确的
+        // 确保设置面板可见时，设置值是正确的
         $('#extensions-settings-button').on('click', function () {
             setTimeout(() => {
-                if ($('#image_generation_insert_type').length) {
-                    $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
-                }
+                updateUI();
             }, 200);
         });
     })();
@@ -151,10 +193,12 @@ $(function () {
 // 监听消息接收事件
 eventSource.on(event_types.MESSAGE_RECEIVED, handleIncomingMessage);
 
+
+
 async function handleIncomingMessage() {
-    console.log("handleIncomingMessage");
-    // 如果禁用了功能，直接返回
-    if (extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
+    // 确保设置对象存在
+    if (!extension_settings[extensionName] ||
+        extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
         return;
     }
 
@@ -166,12 +210,25 @@ async function handleIncomingMessage() {
         return;
     }
 
-    // 使用正则表达式搜索 <img prompt="" /> 标签
-    const imgTagRegex = /<img\s+prompt="([^"]*)"\s*\/?>/g;
-    const matches = [...message.mes.matchAll(imgTagRegex)];
+    // 确保promptInjection对象和regex属性存在
+    if (!extension_settings[extensionName].promptInjection ||
+        !extension_settings[extensionName].promptInjection.regex) {
+        console.error('Prompt injection settings not properly initialized');
+        return;
+    }
 
-    if (matches.length > 0) {
-        // 将图片生成延迟到下个事件循环 防阻塞UI渲染
+    // 使用正则表达式search
+    const imgTagRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
+
+    if (imgTagRegex.test(message.mes)) {
+        let matches;
+        if (imgTagRegex.global) {
+            matches = [...message.mes.matchAll(imgTagRegex)];
+        } else {
+            // 对于非全局正则，直接使用match结果
+            matches = [message.mes.match(imgTagRegex)];
+        }
+        // 延迟执行图片生成，确保消息首先显示出来
         setTimeout(async () => {
             try {
                 toastr.info(`Generating ${matches.length} images...`);
@@ -236,9 +293,58 @@ async function handleIncomingMessage() {
 
                 toastr.success(`${matches.length} images generated successfully`);
             } catch (error) {
-                toastr.error('Image generation error:', error);
+                toastr.error(`Image generation error: ${error}`);
                 console.error('Image generation error:', error);
             }
-        }, 0);
+        }, 0); //防阻塞UI渲染
+    }
+}
+
+// 获取消息角色
+function getMesRole() {
+    // 确保对象路径存在
+    if (!extension_settings[extensionName] ||
+        !extension_settings[extensionName].promptInjection ||
+        !extension_settings[extensionName].promptInjection.position) {
+        return 'system'; // 默认返回system角色
+    }
+
+    switch (extension_settings[extensionName].promptInjection.position) {
+        case 'deep_system':
+            return 'system';
+        case 'deep_user':
+            return 'user';
+        case 'deep_assistant':
+            return 'assistant';
+        default:
+            return 'system';
+    }
+}
+
+
+
+// Not recommended, prefer to use official function setExtensionPrompt
+eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
+
+async function onChatCompletionPromptReady(eventData) {
+    try {
+        // 确保设置对象和promptInjection对象都存在
+        if (!extension_settings[extensionName] ||
+            !extension_settings[extensionName].promptInjection ||
+            !extension_settings[extensionName].promptInjection.enabled ||
+            extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
+            return;
+        }
+
+        const prompt = extension_settings[extensionName].promptInjection.prompt
+        if (extension_settings[extensionName].promptInjection.depth === 0) {
+            eventData.chat.push({ role: getMesRole(), content: prompt });
+        } else {
+            eventData.chat.splice(-extension_settings[extensionName].promptInjection.depth, 0, { role: getMesRole(), content: prompt });
+        }
+
+    } catch (error) {
+        console.error('Prompt injection error:', error);
+        toastr.error(`Prompt injection error: ${error}`);
     }
 }
