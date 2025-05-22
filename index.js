@@ -3,17 +3,16 @@
 
 //You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
 import { extension_settings, getContext } from "../../../extensions.js";
-
 //You'll likely need to import some other functions from the main script
 import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
-import { ToolManager } from "../../../../scripts/tool-calling.js";
 import { appendMediaToMessage } from "../../../../script.js";
 import { regexFromString } from '../../../utils.js';
 import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
 
 // 扩展名称和路径
-const extensionName = "image-auto-generation";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+const extensionName = "st-image-auto-generation";
+// /scripts/extensions/third-party
+const extensionFolderPath = `/scripts/extensions/third-party/${extensionName}`;
 
 // 插入类型常量
 const INSERT_TYPE = {
@@ -27,11 +26,9 @@ const defaultSettings = {
     insertType: INSERT_TYPE.DISABLED,
     promptInjection: {
         enabled: true,
-        prompt: `
-        <image_generation>
+        prompt: `<image_generation>
         You must insert a <img prompt="example prompt" /> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images
-        </image_generation>
-        `,
+        </image_generation>`,
         regex: '<img(?:\\s+[^>]*)?\\s+prompt="([^"]*)"(?:\\s+[^>]*)?\\s*\\/?>',
         position: 'deep_system', // deep_system, deep_user, deep_assistant
         depth: 0 // 0表示添加到末尾，>0表示从末尾往前数第几个位置
