@@ -15,11 +15,13 @@ This extension automatically generates images when it detects `<pic prompt="..."
   - Create new messages with generated images (ST's default image generation method)
 - Simple toggle in the extensions menu
 - Configuration panel in the Extensions settings
+- Customizable prompt template and regexp
 
 ### Usage
 1. Enable the extension by clicking "Auto-generate Image" in the extensions menu
 2. Configure the image insertion type in the Extensions settings panel
 3. When your AI includes `<pic prompt="...">` in its message, the extension will automatically generate the image
+4. **[Optional]** Based on your selected image generation model, provide some good prompt examples to AI.
 
 Example:
 ```
