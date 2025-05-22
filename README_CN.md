@@ -18,6 +18,9 @@
 - 扩展设置面板中的配置选项
 - 自定义提示词模板和正则
 
+### 安装
+拓展 -> 安装拓展 -> 输入 https://github.com/wickedcode01/st-image-auto-generation
+
 ### 使用方法
 1. 点击扩展菜单中的"自动生成图片"启用扩展
 2. 在扩展设置面板中配置图像插入类型
@@ -34,5 +37,3 @@
 
 ![settings](./screenshot2.png)
 
-### 安装
-拓展 - 安装拓展 - https://github.com/wickedcode01/st-image-auto-generation
