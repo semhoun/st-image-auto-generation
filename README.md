@@ -25,8 +25,8 @@ This extension automatically generates images when it detects `<pic prompt="..."
 
 Example:
 ```
-Here's a picture of a cat:
-<pic prompt="cute orange cat with green eyes">
+<pic prompt="score_9, score_8_up, score_7_up, source_anime,
+ 1girl, woman, kitsune girl, golden bands, blushing, heart, cowboy shot, beautiful face, thick eyelashes, glowing white eyes, fox ears, long flowy silver hair, cute smile, dark eyeshadow, glowing shoulders tattoos, glowing tattoos, floral decoration in hair, night time, shinning moon, blush, white floral kimono, large breasts, cleavage,japanese theme,">
 ```
 ### Screenshots
 ![](./screenshot.png)
