@@ -6,6 +6,7 @@
 This extension automatically generates images when it detects `<pic prompt="...">` tags in AI messages. It seamlessly integrates with SillyTavern's image generation capabilities, allowing your AI characters to include images in their responses.
 
 **Make sure your ST built-in image generation function works properly**
+
 **By default, relevant prompt will be injected at the end of the message, but this can be changed in the settings**
 ### Features
 - Automatically detects and processes image generation requests in AI messages
@@ -26,7 +27,7 @@ Here's a picture of a cat:
 <pic prompt="cute orange cat with green eyes">
 ```
 ### Screenshots
-![](./Screenshot.png)
+![](./screenshot.png)
 
 ![settings](./screenshot_en.png)
 ### Installation
