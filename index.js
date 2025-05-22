@@ -27,9 +27,9 @@ const defaultSettings = {
     promptInjection: {
         enabled: true,
         prompt: `<image_generation>
-        You must insert a <img prompt="example prompt" /> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images
+        You must insert a <pic prompt="example prompt"> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.
         </image_generation>`,
-        regex: '<img(?:\\s+[^>]*)?\\s+prompt="([^"]*)"(?:\\s+[^>]*)?\\s*\\/?>',
+        regex: '<pic(?:\\s+[^>]*)?\\s+prompt="([^"]*)"(?:\\s+[^>]*)?\\s*\\/?>',
         position: 'deep_system', // deep_system, deep_user, deep_assistant
         depth: 0 // 0表示添加到末尾，>0表示从末尾往前数第几个位置
     }
