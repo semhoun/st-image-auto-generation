@@ -11,7 +11,7 @@ This extension automatically generates images when it detects `<pic prompt="..."
 ### Features
 - Automatically detects and processes image generation requests in AI messages
 - Two insertion modes:
-  - Insert images directly in the current message (ST release version unsupported now)
+  - Insert images directly in the current message
   - Create new messages with generated images (ST's default image generation method)
 - Simple toggle in the extensions menu
 - Configuration panel in the Extensions settings
