@@ -28,7 +28,7 @@
 这是一张猫的图片：
 <pic prompt="cute orange cat with green eyes">
 ```
-### Screenshots
+### 截图
 ![](./screenshot.png)
 
 ![settings](./screenshot2.png)
