@@ -9,6 +9,8 @@ import { saveSettingsDebounced, eventSource, event_types } from "../../../../scr
 import { ToolManager } from "../../../../scripts/tool-calling.js";
 import { appendMediaToMessage } from "../../../../script.js";
 import { regexFromString } from '../../../utils.js';
+import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
+
 // 扩展名称和路径
 const extensionName = "image-auto-generation";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -216,7 +218,7 @@ function getMesRole() {
 }
 
 // 监听CHAT_COMPLETION_PROMPT_READY事件以注入提示词
-eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function(eventData) {
+eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function (eventData) {
     try {
         // 确保设置对象和promptInjection对象都存在
         if (!extension_settings[extensionName] ||
@@ -232,7 +234,7 @@ eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function(eventDat
 
         console.log(`[${extensionName}] 准备注入提示词: 角色=${role}, 深度=${depth}`);
         console.log(`[${extensionName}] 提示词内容: ${prompt.substring(0, 50)}...`);
-        
+
         // 根据depth参数决定插入位置
         if (depth === 0) {
             // 添加到末尾
@@ -243,7 +245,7 @@ eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function(eventDat
             eventData.chat.splice(-depth, 0, { role: role, content: prompt });
             console.log(`[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`);
         }
-        
+
         // 打印完整的eventData.chat用于调试
         console.log(`[${extensionName}] 消息数量: ${eventData.chat.length}`);
         console.log(`[${extensionName}] 最后几条消息角色: ${eventData.chat.slice(-3).map(m => m.role).join(', ')}`);
@@ -294,36 +296,39 @@ async function handleIncomingMessage() {
                 toastr.info(`Generating ${matches.length} images...`);
                 const insertType = extension_settings[extensionName].insertType;
 
-                if (insertType === INSERT_TYPE.INLINE) {
-                    // 在当前消息中插入图片
-                    // 初始化message.extra
-                    if (!message.extra) {
-                        message.extra = {};
-                    }
 
-                    // 初始化image_swipes数组
-                    if (!Array.isArray(message.extra.image_swipes)) {
-                        message.extra.image_swipes = [];
-                    }
+                // 在当前消息中插入图片
+                // 初始化message.extra
+                if (!message.extra) {
+                    message.extra = {};
+                }
 
-                    // 如果已有图片，添加到swipes
-                    if (message.extra.image && !message.extra.image_swipes.includes(message.extra.image)) {
-                        message.extra.image_swipes.push(message.extra.image);
-                    }
+                // 初始化image_swipes数组
+                if (!Array.isArray(message.extra.image_swipes)) {
+                    message.extra.image_swipes = [];
+                }
 
-                    // 获取消息元素用于稍后更新
-                    const messageElement = $(`.mes[mesid="${context.chat.length - 1}"]`);
+                // 如果已有图片，添加到swipes
+                if (message.extra.image && !message.extra.image_swipes.includes(message.extra.image)) {
+                    message.extra.image_swipes.push(message.extra.image);
+                }
 
-                    // 处理每个匹配的图片标签
-                    for (let i = 0; i < matches.length; i++) {
-                        const prompt = matches[i][1];
+                // 获取消息元素用于稍后更新
+                const messageElement = $(`.mes[mesid="${context.chat.length - 1}"]`);
 
-                        // 使用 ToolManager 调用图片生成功能
-                        const result = await ToolManager.invokeFunctionTool('GenerateImage', {
-                            prompt: prompt,
-                            quiet: 'true'
-                        });
+                // 处理每个匹配的图片标签
+                for (let i = 0; i < matches.length; i++) {
+                    const prompt = matches[i][1];
 
+                    // 使用 ToolManager 调用图片生成功能
+                    // const result = await ToolManager.invokeFunctionTool('GenerateImage', {
+                    //     prompt: prompt,
+                    //     quiet: 'true'
+                    // });
+                    // @ts-ignore
+                    const result = await SlashCommandParser.commands['sd'].callback({ quiet: insertType === INSERT_TYPE.INLINE ? 'true' : 'false' }, prompt);
+                    // 替换
+                    if (insertType === INSERT_TYPE.INLINE) {
                         let imageUrl = result;
                         if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
                             // 添加图片到swipes数组
@@ -341,16 +346,8 @@ async function handleIncomingMessage() {
                             await context.saveChat();
                         }
                     }
-                } else if (insertType === INSERT_TYPE.NEW_MESSAGE) {
-                    // 在新的一条消息中插入图片
-                    for (let i = 0; i < matches.length; i++) {
-                        const prompt = matches[i][1];
-                        await ToolManager.invokeFunctionTool('GenerateImage', {
-                            prompt: prompt
-                        });
-                    }
-                }
 
+                }
                 toastr.success(`${matches.length} images generated successfully`);
             } catch (error) {
                 toastr.error(`Image generation error: ${error}`);
