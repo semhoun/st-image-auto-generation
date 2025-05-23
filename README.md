@@ -16,8 +16,14 @@ This extension automatically generates images when it detects `<pic prompt="..."
 - Simple toggle in the extensions menu
 - Configuration panel in the Extensions settings
 - Customizable prompt template and regexp
+
+### Prerequisites
+Extensions -> Image Generation -> Configure API
+![](./dist/image.png)
+
 ### Installation
-Extension - Install Extension - https://github.com/wickedcode01/st-image-auto-generation
+Extension -> Install Extension -> https://github.com/wickedcode01/st-image-auto-generation
+
 ### Usage
 1. Enable the extension by clicking "Auto-generate Image" in the extensions menu
 2. Configure the image insertion type in the Extensions settings panel
@@ -29,11 +35,17 @@ Example:
 <pic prompt="score_9, score_8_up, score_7_up, source_anime,
  1girl, woman, kitsune girl, golden bands, blushing, heart, cowboy shot, beautiful face, thick eyelashes, glowing white eyes, fox ears, long flowy silver hair, cute smile, dark eyeshadow, glowing shoulders tattoos, glowing tattoos, floral decoration in hair, night time, shinning moon, blush, white floral kimono, large breasts, cleavage,japanese theme,">
 ```
-### Screenshots
-![](./screenshot.png)
 
-![settings](./screenshot_en.png)
+### Notes
+- Prompt injection and regex can be decoupled. You can use world books or other extensions to implement more advanced prompt injection (such as conditional injection based on context scanning)
+- The regex pattern must capture the prompt as the first capture group, i.e., wrap it in parentheses, for example: `<pic[^>]*\sprompt="([^"]*)"[^>]*?>` 
+- Check if your regex and prompt can match properly, as auto image generation won't trigger if they don't match.
+
+### Screenshots
+![](./dist/screenshot.png)
+
+![settings](./dist/screenshot_en.png)
 You can configure prompt template and regular expression
 
-![](./image.png)
-please make sure you have configured this before start
+![](./dist/image.png)
+Please make sure you have configured the image generation model before starting

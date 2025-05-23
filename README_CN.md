@@ -18,6 +18,10 @@
 - 扩展设置面板中的配置选项
 - 自定义提示词模板和正则
 
+### 前置
+拓展 -> 图像生成 -> 配置好API
+![](./dist/Screenshot%202025-05-23%20141239.png)
+
 ### 安装
 拓展 -> 安装拓展 -> 输入 https://github.com/wickedcode01/st-image-auto-generation
 
@@ -32,11 +36,16 @@
 <pic prompt="score_9, score_8_up, score_7_up, source_anime,
  1girl, woman, kitsune girl, golden bands, blushing, heart, cowboy shot, beautiful face, thick eyelashes, glowing white eyes, fox ears, long flowy silver hair, cute smile, dark eyeshadow, glowing shoulders tattoos, glowing tattoos, floral decoration in hair, night time, shinning moon, blush, white floral kimono, large breasts, cleavage,japanese theme,">
 ```
-### 截图
-![](./screenshot.png)
+### 注意事项
+- 提示词注入和正则可以解耦，你完全可以用世界书或其他插件实现更高级的提示词注入（如基于上下文扫描的条件注入）
+- 正则的写法必须满足将提示词作为第一个捕获组，即用括号包裹，例如：`<pic[^>]*\sprompt="([^"]*)"[^>]*?>` 
+- 检查你的正则和提示词是否能够匹配上，如果匹配不上是无法触发自动生图的。
 
-![settings](./screenshot2.png)
+### 截图
+![](./dist/screenshot.png)
+
+![settings](./dist/screenshot2.png)
 你可以自定义提示词模板和正则表达式
 
-![](./image.png)
+![](./dist/Screenshot%202025-05-23%20141239.png)
 请确保在开始前配置好相关的生图模型
