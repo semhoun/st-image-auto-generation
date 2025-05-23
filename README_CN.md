@@ -20,7 +20,6 @@
 
 ### 前置
 拓展 -> 图像生成 -> 配置好API<br>
-![](./dist/Screenshot%202025-05-23%20141239.png)
 
 ### 安装
 拓展 -> 安装拓展 -> 输入 https://github.com/wickedcode01/st-image-auto-generation

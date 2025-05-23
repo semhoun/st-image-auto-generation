@@ -19,7 +19,6 @@ This extension automatically generates images when it detects `<pic prompt="..."
 
 ### Prerequisites
 Extensions -> Image Generation -> Configure API<br>
-![](./dist/image.png)
 
 ### Installation
 Extension -> Install Extension -> https://github.com/wickedcode01/st-image-auto-generation
