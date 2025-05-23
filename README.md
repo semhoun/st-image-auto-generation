@@ -18,7 +18,7 @@ This extension automatically generates images when it detects `<pic prompt="..."
 - Customizable prompt template and regexp
 
 ### Prerequisites
-Extensions -> Image Generation -> Configure API
+Extensions -> Image Generation -> Configure API<br>
 ![](./dist/image.png)
 
 ### Installation
@@ -44,8 +44,9 @@ Example:
 ### Screenshots
 ![](./dist/screenshot.png)
 
+You can configure prompt template and regular expression<br>
 ![settings](./dist/screenshot_en.png)
-  You can configure prompt template and regular expression
 
+Please make sure you have configured the image generation model before starting<br>
 ![](./dist/image.png)
-  Please make sure you have configured the image generation model before starting
+
