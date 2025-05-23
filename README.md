@@ -11,24 +11,26 @@ This extension automatically generates images when it detects `<pic prompt="..."
 ### Features
 - Automatically detects and processes image generation requests in AI messages
 - Two insertion modes:
-  - Insert images directly in the current message (ST release version unsupported now)
+  - Insert images directly in the current message
   - Create new messages with generated images (ST's default image generation method)
 - Simple toggle in the extensions menu
 - Configuration panel in the Extensions settings
-
+- Customizable prompt template and regexp
+### Installation
+Extension - Install Extension - https://github.com/wickedcode01/st-image-auto-generation
 ### Usage
 1. Enable the extension by clicking "Auto-generate Image" in the extensions menu
 2. Configure the image insertion type in the Extensions settings panel
 3. When your AI includes `<pic prompt="...">` in its message, the extension will automatically generate the image
+4. **[Optional]** Based on your selected image generation model, provide some good prompt examples to AI.
 
 Example:
 ```
-Here's a picture of a cat:
-<pic prompt="cute orange cat with green eyes">
+<pic prompt="score_9, score_8_up, score_7_up, source_anime,
+ 1girl, woman, kitsune girl, golden bands, blushing, heart, cowboy shot, beautiful face, thick eyelashes, glowing white eyes, fox ears, long flowy silver hair, cute smile, dark eyeshadow, glowing shoulders tattoos, glowing tattoos, floral decoration in hair, night time, shinning moon, blush, white floral kimono, large breasts, cleavage,japanese theme,">
 ```
 ### Screenshots
 ![](./screenshot.png)
 
 ![settings](./screenshot_en.png)
-### Installation
-Extension - Install Extension - https://github.com/wickedcode01/st-image-auto-generation
+
