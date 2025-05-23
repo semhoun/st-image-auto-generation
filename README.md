@@ -45,7 +45,7 @@ Example:
 ![](./dist/screenshot.png)
 
 ![settings](./dist/screenshot_en.png)
-You can configure prompt template and regular expression
+  You can configure prompt template and regular expression
 
 ![](./dist/image.png)
-Please make sure you have configured the image generation model before starting
+  Please make sure you have configured the image generation model before starting

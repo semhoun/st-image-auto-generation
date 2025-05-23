@@ -45,7 +45,7 @@
 ![](./dist/screenshot.png)
 
 ![settings](./dist/screenshot2.png)
-你可以自定义提示词模板和正则表达式
+  你可以自定义提示词模板和正则表达式
 
 ![](./dist/Screenshot%202025-05-23%20141239.png)
-请确保在开始前配置好相关的生图模型
+  请确保在开始前配置好相关的生图模型
