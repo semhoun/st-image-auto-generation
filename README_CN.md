@@ -36,7 +36,9 @@
 ![](./screenshot.png)
 
 ![settings](./screenshot2.png)
+
 你可以自定义提示词模板和正则表达式
 
 ![](./image.png)
+
 请确保在开始前配置好相关的生图模型
