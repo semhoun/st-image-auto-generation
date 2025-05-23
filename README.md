@@ -33,7 +33,9 @@ Example:
 ![](./screenshot.png)
 
 ![settings](./screenshot_en.png)
+
 You can configure prompt template and regular expression
 
 ![](./image.png)
+
 please make sure you have configured this before start
