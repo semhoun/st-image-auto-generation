@@ -18,7 +18,8 @@ const extensionFolderPath = `/scripts/extensions/third-party/${extensionName}`;
 const INSERT_TYPE = {
     DISABLED: 'disabled',
     INLINE: 'inline',
-    NEW_MESSAGE: 'new'
+    NEW_MESSAGE: 'new',
+    REPLACE: 'replace'
 };
 
 // 默认设置
@@ -27,7 +28,7 @@ const defaultSettings = {
     promptInjection: {
         enabled: true,
         prompt:
-        `<image_generation>
+            `<image_generation>
 You must insert a <pic prompt="example prompt"> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.
 </image_generation>`,
         regex: '/<pic[^>]*\\sprompt="([^"]*)"[^>]*?>/g',
@@ -310,14 +311,9 @@ async function handleIncomingMessage() {
                 for (let i = 0; i < matches.length; i++) {
                     const prompt = matches[i];
 
-                    // 使用 ToolManager 调用图片生成功能
-                    // const result = await ToolManager.invokeFunctionTool('GenerateImage', {
-                    //     prompt: prompt,
-                    //     quiet: 'true'
-                    // });
                     // @ts-ignore
-                    const result = await SlashCommandParser.commands['sd'].callback({ quiet: insertType === INSERT_TYPE.INLINE ? 'true' : 'false' }, prompt);
-                    // 替换
+                    const result = await SlashCommandParser.commands['sd'].callback({ quiet: insertType === INSERT_TYPE.NEW_MESSAGE ? 'false' : 'true' }, prompt);
+                    // 统一插入到extra里
                     if (insertType === INSERT_TYPE.INLINE) {
                         let imageUrl = result;
                         if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
@@ -333,6 +329,21 @@ async function handleIncomingMessage() {
                             appendMediaToMessage(message, messageElement);
 
                             // 保存聊天记录
+                            await context.saveChat();
+                        }
+                    } else if (insertType === INSERT_TYPE.REPLACE) {
+                        let imageUrl = result;
+                        if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+                            // Find the original image tag in the message
+                            const originalTag = message.mes.match(imgTagRegex)[0];
+                            // Replace it with an actual image tag
+                            const newImageTag = `<img src="${imageUrl}" alt="${prompt}">`;
+                            message.mes = message.mes.replace(originalTag, newImageTag);
+
+                            // Update the message element
+                            messageElement.find('.mes_text').html(message.mes);
+
+                            // Save the chat
                             await context.saveChat();
                         }
                     }
