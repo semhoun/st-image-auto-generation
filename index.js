@@ -30,7 +30,7 @@ const defaultSettings = {
         `<image_generation>
 You must insert a <pic prompt="example prompt"> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.
 </image_generation>`,
-        regex: '<pic[^>]*\\sprompt="([^"]*)"[^>]*?>',
+        regex: '/<pic[^>]*\\sprompt="([^"]*)"[^>]*?>/g',
         position: 'deep_system', // deep_system, deep_user, deep_assistant
         depth: 0 // 0表示添加到末尾，>0表示从末尾往前数第几个位置
     }
@@ -244,9 +244,6 @@ eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function (eventDa
             console.log(`[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`);
         }
 
-        // 打印完整的eventData.chat用于调试
-        console.log(`[${extensionName}] 消息数量: ${eventData.chat.length}`);
-        console.log(`[${extensionName}] 最后几条消息角色: ${eventData.chat.slice(-3).map(m => m.role).join(', ')}`);
     } catch (error) {
         console.error(`[${extensionName}] 提示词注入错误:`, error);
         toastr.error(`提示词注入错误: ${error}`);
@@ -279,15 +276,10 @@ async function handleIncomingMessage() {
 
     // 使用正则表达式search
     const imgTagRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
-
-    if (imgTagRegex.test(message.mes)) {
-        let matches;
-        if (imgTagRegex.global) {
-            matches = [...message.mes.matchAll(imgTagRegex)];
-        } else {
-            // 对于非全局正则，直接使用match结果
-            matches = [message.mes.match(imgTagRegex)];
-        }
+    // const testRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
+    let matches = imgTagRegex.global ? [...message.mes.matchAll(imgTagRegex)].map(match => match[1]) : [message.mes.match(imgTagRegex)[1]]; // 只取捕获组的内容
+    console.log(imgTagRegex, matches)
+    if (matches.length > 0) {
         // 延迟执行图片生成，确保消息首先显示出来
         setTimeout(async () => {
             try {
@@ -316,7 +308,7 @@ async function handleIncomingMessage() {
 
                 // 处理每个匹配的图片标签
                 for (let i = 0; i < matches.length; i++) {
-                    const prompt = matches[i][1];
+                    const prompt = matches[i];
 
                     // 使用 ToolManager 调用图片生成功能
                     // const result = await ToolManager.invokeFunctionTool('GenerateImage', {
