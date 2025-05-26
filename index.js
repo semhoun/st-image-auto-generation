@@ -4,7 +4,7 @@
 //You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
 import { extension_settings, getContext } from "../../../extensions.js";
 //You'll likely need to import some other functions from the main script
-import { saveSettingsDebounced, eventSource, event_types } from "../../../../script.js";
+import { saveSettingsDebounced, eventSource, event_types, updateMessageBlock } from "../../../../script.js";
 import { appendMediaToMessage } from "../../../../script.js";
 import { regexFromString } from '../../../utils.js';
 import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
@@ -340,8 +340,8 @@ async function handleIncomingMessage() {
                             const newImageTag = `<img src="${imageUrl}" title="${prompt}" alt="${prompt}">`;
                             message.mes = message.mes.replace(originalTag, newImageTag);
 
-                            // Update the message element
-                            messageElement.find('.mes_text').html(message.mes);
+                            // Update the message display using updateMessageBlock
+                            updateMessageBlock(context.chat.length - 1, message);
 
                             // Save the chat
                             await context.saveChat();
