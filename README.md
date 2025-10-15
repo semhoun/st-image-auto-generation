@@ -1,71 +1,87 @@
-# Sillytavern Image Auto Generation Extension
+# 酒馆图像自动生成插件
 
-[中文](./README_CN.md)
+### 更新
 
-### Description
-This extension automatically generates images when it detects `<pic prompt="...">` tags in AI messages. It seamlessly integrates with SillyTavern's image generation capabilities, allowing your AI characters to include images in their responses.
+行内替换模式兼容性不是很好，经常会给格式顶掉，尝试修复了一下，但是我手头不太好复现这个bug。暂时就先这样...
 
-**Make sure your ST built-in image generation function works properly**
+### 描述
 
-**By default, relevant prompt will be injected at the end of the message, but this can be changed in the settings**
-### Features
-- Automatically detects and processes image generation requests in AI messages
-- Three insertion modes:
-  - Insert into current message (inserts into ST's extra array, supports image controls)
-  - Inline replacement mode (directly replaces the corresponding tag, does not support image controls)
-  - Create new messages with generated images (ST's default image generation method, best compatibility)
-- Simple toggle in the extensions menu
-- Configuration panel in the Extensions settings
-- Customizable prompt template and regexp
+当检测到AI消息中的 `<pic prompt="...">` 标签时，此扩展会自动生成图像。它与SillyTavern的图像生成功能无缝集成，允许您的AI角色在回复中包含图像。
 
-### Recommended Settings
-If you only want to generate one image at a time, you can use the default prompt. You can also add some image generation guidance at the end to help the LLM better understand how to write good prompts.
+**请确保你酒馆自带的生图功能能够使用**
 
-If you want to generate multiple images at once, you can use the following prompt and regex (for reference):
+**默认会在消息列表的最后注入相关生图提示词，可以在设置里更改**
+
+### 功能
+
+- 自动检测并处理AI消息中的图像生成请求
+- 三种插入模式：
+  - 插入当前消息（会插入酒馆自带的extra数组中，支持图片控件功能）
+  - 行内替换模式（会直接替换相应的标签，不支持图片控件功能）
+  - 创建新消息（酒馆默认的生图方法，会直接创建一条新的消息显示图片，兼容性最好）
+- 扩展菜单中简单的开关
+- 扩展设置面板中的配置选项
+- 自定义提示词模板和正则
+
+### 推荐设置
+
+如果你只想要一次生成一张图，那用默认的prompt就行了，也可以在最后增加一些生图指导，让LLM更加了解如何写好prompt。
+
+如果你想要一次生成多张图，可以用以下的提示和正则(仅供参考)：
+
 ```
 prompt: <image_generation>You must insert at most three <pic prompt="example prompt"> in the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.</image_generation>
 regexp: /<pic[^>]*\sprompt="([^"]*)"[^>]*?>/g
 ```
 
-### Common Issues
-**How to set up NovelAI key?**
-- Set it in the chat completion settings area, you can find the NovelAI option in the dropdown menu.
+### 常见问题
 
-**Do I need a world book?**
-- No, the plugin has built-in prompts that can be customized. You can also copy image generation guidance from previous world books into it.
+**NovelAI的key怎么设置？**
 
-**Why isn't automatic image generation working?**
-- Check your regular expression to ensure it can match the tags returned by the AI. Make sure the regex is `<pic[^>]*\sprompt="([^"]*)"[^>]*?>` and not missing a backslash like `<pic[^>]*sprompt="([^"]*)"[^>]*?>`. If you've modified the prompt template, you need to update the regex to match the tags required by your prompt template.
+- 需要在设置聊天补全的那个地方设置，下拉就可以看到NovelAI的选项了。
 
-### Prerequisites
-Extensions -> Image Generation -> Configure API<br>
+**需要世界书吗？**
 
-### Installation
-Extension -> Install Extension -> https://github.com/wickedcode01/st-image-auto-generation
+- 不需要，插件内置了prompt，可以自定义，也可以将之前世界书的生图指导复制进去。
 
-### Usage
-1. Enable the extension by clicking "Auto-generate Image" in the extensions menu
-2. Configure the image insertion type in the Extensions settings panel
-3. When your AI includes `<pic prompt="...">` in its message, the extension will automatically generate the image
-4. **[Optional]** Based on your selected image generation model, provide some good prompt examples to AI.
+**为什么无法自动生图？**
 
-Example:
+- 检查一下正则表达式，确定正则表达式能够匹配到AI返回的标签。麻烦查看下正则是不是`<pic[^>]*\sprompt="([^"]*)"[^>]*?>`，错误的正则可能少了一个斜杠变成`<pic[^>]*sprompt="([^"]*)"[^>]*?>`。如果你修改了提示模板的话，需要将正则改成对应上你提示模板里要求的标签。
+
+### 前置
+
+拓展 -> 图像生成 -> 配置好API<br>
+
+### 安装
+
+拓展 -> 安装拓展 -> 输入 https://github.com/wickedcode01/st-image-auto-generation
+
+### 使用方法
+
+1. 点击扩展菜单中的"自动生成图片"启用扩展
+2. 在扩展设置面板中配置图像插入类型
+3. 当您的AI在消息中包含 `<pic prompt="...">` 时，扩展将自动生成图像
+4. 【可选】根据选择的生图模型，在提示词模板内提供一些好的例子，让AI参考。
+
+示例：
+
 ```
 <pic prompt="score_9, score_8_up, score_7_up, source_anime,
  1girl, woman, kitsune girl, golden bands, blushing, heart, cowboy shot, beautiful face, thick eyelashes, glowing white eyes, fox ears, long flowy silver hair, cute smile, dark eyeshadow, glowing shoulders tattoos, glowing tattoos, floral decoration in hair, night time, shinning moon, blush, white floral kimono, large breasts, cleavage,japanese theme,">
 ```
 
-### Notes
-- Prompt injection and regex can be decoupled. You can use world books or other extensions to implement more advanced prompt injection (such as conditional injection based on context scanning)
-- The regex pattern must capture the prompt as the first capture group, i.e., wrap it in parentheses, for example: `<pic[^>]*\sprompt="([^"]*)"[^>]*?>` 
-- Check if your regex and prompt can match properly, as auto image generation won't trigger if they don't match.
+### 注意事项
 
-### Screenshots
+- 提示词注入和正则可以解耦，你完全可以用世界书或其他插件实现更高级的提示词注入（如基于上下文扫描的条件注入）
+- 正则的写法必须满足将提示词作为第一个捕获组，即用括号包裹，例如：`<pic[^>]*\sprompt="([^"]*)"[^>]*?>`
+- 检查你的正则和提示词是否能够匹配上，如果匹配不上是无法触发自动生图的。
+
+### 截图
+
 ![](./dist/Screenshot%202025-05-25%20151108.png)
 ![](./dist/Screenshot%202025-05-25%20144831.png)
-You can configure prompt template and regular expression<br>
-![settings](./dist/screenshot_en.png)
+你可以自定义提示词模板和正则表达式<br>
+![settings](./dist/screenshot2.png)
 
-Please make sure you have configured the image generation model before starting<br>
-![](./dist/image.png)
-
+请确保在开始前配置好相关的生图模型<br>
+![](./dist/Screenshot%202025-05-23%20141239.png)
