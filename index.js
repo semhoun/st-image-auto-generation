@@ -362,9 +362,13 @@ async function handleIncomingMessage() {
         extension_settings[extensionName].promptInjection.regex,
     );
     // const testRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
-    let matches = imgTagRegex.global
-        ? [...message.mes.matchAll(imgTagRegex)].map((match) => match[1])
-        : [message.mes.match(imgTagRegex)[1]]; // 只取捕获组的内容
+    let matches;
+    if (imgTagRegex.global) {
+        matches = [...message.mes.matchAll(imgTagRegex)];
+    } else {
+        const singleMatch = message.mes.match(imgTagRegex);
+        matches = singleMatch ? [singleMatch] : [];
+    }
     console.log(imgTagRegex, matches);
     if (matches.length > 0) {
         // 延迟执行图片生成，确保消息首先显示出来
@@ -398,8 +402,12 @@ async function handleIncomingMessage() {
                 );
 
                 // 处理每个匹配的图片标签
-                for (let i = 0; i < matches.length; i++) {
-                    const prompt = matches[i];
+                for (const match of matches) {
+                    const prompt =
+                        typeof match?.[1] === 'string' ? match[1] : '';
+                    if (!prompt.trim()) {
+                        continue;
+                    }
 
                     // @ts-ignore
                     const result = await SlashCommandParser.commands[
@@ -441,12 +449,11 @@ async function handleIncomingMessage() {
                             imageUrl.trim().length > 0
                         ) {
                             // Find the original image tag in the message
-                            const originalMatch =
-                                message.mes.match(imgTagRegex);
-                            if (!originalMatch || originalMatch.length === 0) {
+                            const originalTag =
+                                typeof match?.[0] === 'string' ? match[0] : '';
+                            if (!originalTag) {
                                 continue;
                             }
-                            const originalTag = originalMatch[0];
                             // Replace it with an actual image tag
                             const escapedUrl = escapeHtmlAttribute(imageUrl);
                             const escapedPrompt = escapeHtmlAttribute(prompt);
@@ -460,6 +467,10 @@ async function handleIncomingMessage() {
                             updateMessageBlock(
                                 context.chat.length - 1,
                                 message,
+                            );
+                            await eventSource.emit(
+                                event_types.MESSAGE_UPDATED,
+                                context.chat.length - 1,
                             );
 
                             // Save the chat
