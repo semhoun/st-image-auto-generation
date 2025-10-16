@@ -2,15 +2,20 @@
 // The following are examples of some basic extension functionality
 
 //You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
-import { extension_settings, getContext } from "../../../extensions.js";
+import { extension_settings, getContext } from '../../../extensions.js';
 //You'll likely need to import some other functions from the main script
-import { saveSettingsDebounced, eventSource, event_types, updateMessageBlock } from "../../../../script.js";
-import { appendMediaToMessage } from "../../../../script.js";
+import {
+    saveSettingsDebounced,
+    eventSource,
+    event_types,
+    updateMessageBlock,
+} from '../../../../script.js';
+import { appendMediaToMessage } from '../../../../script.js';
 import { regexFromString } from '../../../utils.js';
-import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
+import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
 
 // 扩展名称和路径
-const extensionName = "st-image-auto-generation";
+const extensionName = 'st-image-auto-generation';
 // /scripts/extensions/third-party
 const extensionFolderPath = `/scripts/extensions/third-party/${extensionName}`;
 
@@ -19,37 +24,70 @@ const INSERT_TYPE = {
     DISABLED: 'disabled',
     INLINE: 'inline',
     NEW_MESSAGE: 'new',
-    REPLACE: 'replace'
+    REPLACE: 'replace',
 };
+
+/**
+ * Escapes characters for safe inclusion inside HTML attribute values.
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeHtmlAttribute(value) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
 // 默认设置
 const defaultSettings = {
     insertType: INSERT_TYPE.DISABLED,
     promptInjection: {
         enabled: true,
-        prompt:
-            `<image_generation>
+        prompt: `<image_generation>
 You must insert a <pic prompt="example prompt"> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.
 </image_generation>`,
         regex: '/<pic[^>]*\\sprompt="([^"]*)"[^>]*?>/g',
         position: 'deep_system', // deep_system, deep_user, deep_assistant
-        depth: 0 // 0表示添加到末尾，>0表示从末尾往前数第几个位置
-    }
+        depth: 0, // 0表示添加到末尾，>0表示从末尾往前数第几个位置
+    },
 };
 
 // 从设置更新UI
 function updateUI() {
     // 根据insertType设置开关状态
-    $("#auto_generation").toggleClass('selected', extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED);
+    $('#auto_generation').toggleClass(
+        'selected',
+        extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED,
+    );
 
     // 只在表单元素存在时更新它们
-    if ($("#image_generation_insert_type").length) {
-        $('#image_generation_insert_type').val(extension_settings[extensionName].insertType);
-        $('#prompt_injection_enabled').prop('checked', extension_settings[extensionName].promptInjection.enabled);
-        $('#prompt_injection_text').val(extension_settings[extensionName].promptInjection.prompt);
-        $('#prompt_injection_regex').val(extension_settings[extensionName].promptInjection.regex);
-        $('#prompt_injection_position').val(extension_settings[extensionName].promptInjection.position);
-        $('#prompt_injection_depth').val(extension_settings[extensionName].promptInjection.depth);
+    if ($('#image_generation_insert_type').length) {
+        $('#image_generation_insert_type').val(
+            extension_settings[extensionName].insertType,
+        );
+        $('#prompt_injection_enabled').prop(
+            'checked',
+            extension_settings[extensionName].promptInjection.enabled,
+        );
+        $('#prompt_injection_text').val(
+            extension_settings[extensionName].promptInjection.prompt,
+        );
+        $('#prompt_injection_regex').val(
+            extension_settings[extensionName].promptInjection.regex,
+        );
+        $('#prompt_injection_position').val(
+            extension_settings[extensionName].promptInjection.position,
+        );
+        $('#prompt_injection_depth').val(
+            extension_settings[extensionName].promptInjection.depth,
+        );
     }
 }
 
@@ -63,20 +101,26 @@ async function loadSettings() {
     } else {
         // 确保promptInjection对象存在
         if (!extension_settings[extensionName].promptInjection) {
-            extension_settings[extensionName].promptInjection = defaultSettings.promptInjection;
+            extension_settings[extensionName].promptInjection =
+                defaultSettings.promptInjection;
         } else {
             // 确保promptInjection的所有子属性都存在
             const defaultPromptInjection = defaultSettings.promptInjection;
             for (const key in defaultPromptInjection) {
-                if (extension_settings[extensionName].promptInjection[key] === undefined) {
-                    extension_settings[extensionName].promptInjection[key] = defaultPromptInjection[key];
+                if (
+                    extension_settings[extensionName].promptInjection[key] ===
+                    undefined
+                ) {
+                    extension_settings[extensionName].promptInjection[key] =
+                        defaultPromptInjection[key];
                 }
             }
         }
 
         // 确保insertType属性存在
         if (extension_settings[extensionName].insertType === undefined) {
-            extension_settings[extensionName].insertType = defaultSettings.insertType;
+            extension_settings[extensionName].insertType =
+                defaultSettings.insertType;
         }
     }
 
@@ -86,12 +130,14 @@ async function loadSettings() {
 // 创建设置页面
 async function createSettings(settingsHtml) {
     // 创建一个容器来存放设置，确保其正确显示在扩展设置面板中
-    if (!$("#image_auto_generation_container").length) {
-        $("#extensions_settings2").append('<div id="image_auto_generation_container" class="extension_container"></div>');
+    if (!$('#image_auto_generation_container').length) {
+        $('#extensions_settings2').append(
+            '<div id="image_auto_generation_container" class="extension_container"></div>',
+        );
     }
 
     // 使用传入的settingsHtml而不是重新获取
-    $("#image_auto_generation_container").empty().append(settingsHtml);
+    $('#image_auto_generation_container').empty().append(settingsHtml);
 
     // 添加设置变更事件处理
     $('#image_generation_insert_type').on('change', function () {
@@ -103,12 +149,14 @@ async function createSettings(settingsHtml) {
 
     // 添加提示词注入设置的事件处理
     $('#prompt_injection_enabled').on('change', function () {
-        extension_settings[extensionName].promptInjection.enabled = $(this).prop('checked');
+        extension_settings[extensionName].promptInjection.enabled =
+            $(this).prop('checked');
         saveSettingsDebounced();
     });
 
     $('#prompt_injection_text').on('input', function () {
-        extension_settings[extensionName].promptInjection.prompt = $(this).val();
+        extension_settings[extensionName].promptInjection.prompt =
+            $(this).val();
         saveSettingsDebounced();
     });
 
@@ -118,14 +166,17 @@ async function createSettings(settingsHtml) {
     });
 
     $('#prompt_injection_position').on('change', function () {
-        extension_settings[extensionName].promptInjection.position = $(this).val();
+        extension_settings[extensionName].promptInjection.position =
+            $(this).val();
         saveSettingsDebounced();
     });
 
     // 深度设置事件处理
     $('#prompt_injection_depth').on('input', function () {
         const value = parseInt(String($(this).val()));
-        extension_settings[extensionName].promptInjection.depth = isNaN(value) ? 0 : value;
+        extension_settings[extensionName].promptInjection.depth = isNaN(value)
+            ? 0
+            : value;
         saveSettingsDebounced();
     });
 
@@ -149,9 +200,15 @@ function onExtensionButtonClick() {
         const container = $('#image_auto_generation_container');
         if (container.length) {
             // 滚动到设置面板位置
-            $('#rm_extensions_block').animate({
-                scrollTop: container.offset().top - $('#rm_extensions_block').offset().top + $('#rm_extensions_block').scrollTop()
-            }, 500);
+            $('#rm_extensions_block').animate(
+                {
+                    scrollTop:
+                        container.offset().top -
+                        $('#rm_extensions_block').offset().top +
+                        $('#rm_extensions_block').scrollTop(),
+                },
+                500,
+            );
 
             // 使用SillyTavern原生的抽屉展开方式
             // 检查抽屉内容是否可见
@@ -171,16 +228,19 @@ function onExtensionButtonClick() {
 $(function () {
     (async function () {
         // 获取设置HTML (只获取一次)
-        const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+        const settingsHtml = await $.get(
+            `${extensionFolderPath}/settings.html`,
+        );
 
         // 添加扩展到菜单
-        $("#extensionsMenu").append(`<div id="auto_generation" class="list-group-item flex-container flexGap5">
+        $('#extensionsMenu')
+            .append(`<div id="auto_generation" class="list-group-item flex-container flexGap5">
             <div class="fa-solid fa-robot"></div>
             <span data-i18n="Image Auto Generation">Image Auto Generation</span>
         </div>`);
 
         // 修改点击事件，打开设置面板而不是切换状态
-        $("#auto_generation").off('click').on("click", onExtensionButtonClick);
+        $('#auto_generation').off('click').on('click', onExtensionButtonClick);
 
         await loadSettings();
 
@@ -198,9 +258,11 @@ $(function () {
 // 获取消息角色
 function getMesRole() {
     // 确保对象路径存在
-    if (!extension_settings[extensionName] ||
+    if (
+        !extension_settings[extensionName] ||
         !extension_settings[extensionName].promptInjection ||
-        !extension_settings[extensionName].promptInjection.position) {
+        !extension_settings[extensionName].promptInjection.position
+    ) {
         return 'system'; // 默认返回system角色
     }
 
@@ -217,46 +279,64 @@ function getMesRole() {
 }
 
 // 监听CHAT_COMPLETION_PROMPT_READY事件以注入提示词
-eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, async function (eventData) {
-    try {
-        // 确保设置对象和promptInjection对象都存在
-        if (!extension_settings[extensionName] ||
-            !extension_settings[extensionName].promptInjection ||
-            !extension_settings[extensionName].promptInjection.enabled ||
-            extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
-            return;
+eventSource.on(
+    event_types.CHAT_COMPLETION_PROMPT_READY,
+    async function (eventData) {
+        try {
+            // 确保设置对象和promptInjection对象都存在
+            if (
+                !extension_settings[extensionName] ||
+                !extension_settings[extensionName].promptInjection ||
+                !extension_settings[extensionName].promptInjection.enabled ||
+                extension_settings[extensionName].insertType ===
+                    INSERT_TYPE.DISABLED
+            ) {
+                return;
+            }
+
+            const prompt =
+                extension_settings[extensionName].promptInjection.prompt;
+            const depth =
+                extension_settings[extensionName].promptInjection.depth || 0;
+            const role = getMesRole();
+
+            console.log(
+                `[${extensionName}] 准备注入提示词: 角色=${role}, 深度=${depth}`,
+            );
+            console.log(
+                `[${extensionName}] 提示词内容: ${prompt.substring(0, 50)}...`,
+            );
+
+            // 根据depth参数决定插入位置
+            if (depth === 0) {
+                // 添加到末尾
+                eventData.chat.push({ role: role, content: prompt });
+                console.log(`[${extensionName}] 提示词已添加到聊天末尾`);
+            } else {
+                // 从末尾向前插入
+                eventData.chat.splice(-depth, 0, {
+                    role: role,
+                    content: prompt,
+                });
+                console.log(
+                    `[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`,
+                );
+            }
+        } catch (error) {
+            console.error(`[${extensionName}] 提示词注入错误:`, error);
+            toastr.error(`提示词注入错误: ${error}`);
         }
-
-        const prompt = extension_settings[extensionName].promptInjection.prompt;
-        const depth = extension_settings[extensionName].promptInjection.depth || 0;
-        const role = getMesRole();
-
-        console.log(`[${extensionName}] 准备注入提示词: 角色=${role}, 深度=${depth}`);
-        console.log(`[${extensionName}] 提示词内容: ${prompt.substring(0, 50)}...`);
-
-        // 根据depth参数决定插入位置
-        if (depth === 0) {
-            // 添加到末尾
-            eventData.chat.push({ role: role, content: prompt });
-            console.log(`[${extensionName}] 提示词已添加到聊天末尾`);
-        } else {
-            // 从末尾向前插入
-            eventData.chat.splice(-depth, 0, { role: role, content: prompt });
-            console.log(`[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`);
-        }
-
-    } catch (error) {
-        console.error(`[${extensionName}] 提示词注入错误:`, error);
-        toastr.error(`提示词注入错误: ${error}`);
-    }
-});
+    },
+);
 
 // 监听消息接收事件
 eventSource.on(event_types.MESSAGE_RECEIVED, handleIncomingMessage);
 async function handleIncomingMessage() {
     // 确保设置对象存在
-    if (!extension_settings[extensionName] ||
-        extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED) {
+    if (
+        !extension_settings[extensionName] ||
+        extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED
+    ) {
         return;
     }
 
@@ -269,24 +349,33 @@ async function handleIncomingMessage() {
     }
 
     // 确保promptInjection对象和regex属性存在
-    if (!extension_settings[extensionName].promptInjection ||
-        !extension_settings[extensionName].promptInjection.regex) {
+    if (
+        !extension_settings[extensionName].promptInjection ||
+        !extension_settings[extensionName].promptInjection.regex
+    ) {
         console.error('Prompt injection settings not properly initialized');
         return;
     }
 
     // 使用正则表达式search
-    const imgTagRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
+    const imgTagRegex = regexFromString(
+        extension_settings[extensionName].promptInjection.regex,
+    );
     // const testRegex = regexFromString(extension_settings[extensionName].promptInjection.regex);
-    let matches = imgTagRegex.global ? [...message.mes.matchAll(imgTagRegex)].map(match => match[1]) : [message.mes.match(imgTagRegex)[1]]; // 只取捕获组的内容
-    console.log(imgTagRegex, matches)
+    let matches;
+    if (imgTagRegex.global) {
+        matches = [...message.mes.matchAll(imgTagRegex)];
+    } else {
+        const singleMatch = message.mes.match(imgTagRegex);
+        matches = singleMatch ? [singleMatch] : [];
+    }
+    console.log(imgTagRegex, matches);
     if (matches.length > 0) {
         // 延迟执行图片生成，确保消息首先显示出来
         setTimeout(async () => {
             try {
                 toastr.info(`Generating ${matches.length} images...`);
                 const insertType = extension_settings[extensionName].insertType;
-
 
                 // 在当前消息中插入图片
                 // 初始化message.extra
@@ -300,23 +389,45 @@ async function handleIncomingMessage() {
                 }
 
                 // 如果已有图片，添加到swipes
-                if (message.extra.image && !message.extra.image_swipes.includes(message.extra.image)) {
+                if (
+                    message.extra.image &&
+                    !message.extra.image_swipes.includes(message.extra.image)
+                ) {
                     message.extra.image_swipes.push(message.extra.image);
                 }
 
                 // 获取消息元素用于稍后更新
-                const messageElement = $(`.mes[mesid="${context.chat.length - 1}"]`);
+                const messageElement = $(
+                    `.mes[mesid="${context.chat.length - 1}"]`,
+                );
 
                 // 处理每个匹配的图片标签
-                for (let i = 0; i < matches.length; i++) {
-                    const prompt = matches[i];
+                for (const match of matches) {
+                    const prompt =
+                        typeof match?.[1] === 'string' ? match[1] : '';
+                    if (!prompt.trim()) {
+                        continue;
+                    }
 
                     // @ts-ignore
-                    const result = await SlashCommandParser.commands['sd'].callback({ quiet: insertType === INSERT_TYPE.NEW_MESSAGE ? 'false' : 'true' }, prompt);
+                    const result = await SlashCommandParser.commands[
+                        'sd'
+                    ].callback(
+                        {
+                            quiet:
+                                insertType === INSERT_TYPE.NEW_MESSAGE
+                                    ? 'false'
+                                    : 'true',
+                        },
+                        prompt,
+                    );
                     // 统一插入到extra里
                     if (insertType === INSERT_TYPE.INLINE) {
                         let imageUrl = result;
-                        if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+                        if (
+                            typeof imageUrl === 'string' &&
+                            imageUrl.trim().length > 0
+                        ) {
                             // 添加图片到swipes数组
                             message.extra.image_swipes.push(imageUrl);
 
@@ -333,23 +444,43 @@ async function handleIncomingMessage() {
                         }
                     } else if (insertType === INSERT_TYPE.REPLACE) {
                         let imageUrl = result;
-                        if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+                        if (
+                            typeof imageUrl === 'string' &&
+                            imageUrl.trim().length > 0
+                        ) {
                             // Find the original image tag in the message
-                            const originalTag = message.mes.match(imgTagRegex)[0];
+                            const originalTag =
+                                typeof match?.[0] === 'string' ? match[0] : '';
+                            if (!originalTag) {
+                                continue;
+                            }
                             // Replace it with an actual image tag
-                            const newImageTag = `<img src="${imageUrl}" title="${prompt}" alt="${prompt}">`;
-                            message.mes = message.mes.replace(originalTag, newImageTag);
+                            const escapedUrl = escapeHtmlAttribute(imageUrl);
+                            const escapedPrompt = escapeHtmlAttribute(prompt);
+                            const newImageTag = `<img src="${escapedUrl}" title="${escapedPrompt}" alt="${escapedPrompt}">`;
+                            message.mes = message.mes.replace(
+                                originalTag,
+                                newImageTag,
+                            );
 
                             // Update the message display using updateMessageBlock
-                            updateMessageBlock(context.chat.length - 1, message);
+                            updateMessageBlock(
+                                context.chat.length - 1,
+                                message,
+                            );
+                            await eventSource.emit(
+                                event_types.MESSAGE_UPDATED,
+                                context.chat.length - 1,
+                            );
 
                             // Save the chat
                             await context.saveChat();
                         }
                     }
-
                 }
-                toastr.success(`${matches.length} images generated successfully`);
+                toastr.success(
+                    `${matches.length} images generated successfully`,
+                );
             } catch (error) {
                 toastr.error(`Image generation error: ${error}`);
                 console.error('Image generation error:', error);
@@ -357,4 +488,3 @@ async function handleIncomingMessage() {
         }, 0); //防阻塞UI渲染
     }
 }
-
