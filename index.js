@@ -1,9 +1,9 @@
 // The main script for the extension
 // The following are examples of some basic extension functionality
 
-//You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
+// You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
 import { extension_settings, getContext } from '../../../extensions.js';
-//You'll likely need to import some other functions from the main script
+// You'll likely need to import some other functions from the main script
 import {
     saveSettingsDebounced,
     eventSource,
@@ -14,12 +14,12 @@ import { appendMediaToMessage } from '../../../../script.js';
 import { regexFromString } from '../../../utils.js';
 import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
 
-// 扩展名称和路径
+// Extension name and path
 const extensionName = 'st-image-auto-generation';
 // /scripts/extensions/third-party
 const extensionFolderPath = `/scripts/extensions/third-party/${extensionName}`;
 
-// 插入类型常量
+// Insertion type constants
 const INSERT_TYPE = {
     DISABLED: 'disabled',
     INLINE: 'inline',
@@ -45,29 +45,30 @@ function escapeHtmlAttribute(value) {
         .replace(/>/g, '&gt;');
 }
 
-// 默认设置
+// Default settings
 const defaultSettings = {
     insertType: INSERT_TYPE.DISABLED,
     promptInjection: {
         enabled: true,
+        remove: false,
         prompt: `<image_generation>
 You must insert a <pic prompt="example prompt"> at end of the reply. Prompts are used for stable diffusion image generation, based on the plot and character to output appropriate prompts to generate captivating images.
 </image_generation>`,
         regex: '/<pic[^>]*\\sprompt="([^"]*)"[^>]*?>/g',
         position: 'deep_system', // deep_system, deep_user, deep_assistant
-        depth: 0, // 0表示添加到末尾，>0表示从末尾往前数第几个位置
+        depth: 0, // 0 means append to the end, >0 means count from the end backwards to the specified position
     },
 };
 
-// 从设置更新UI
+// Update UI based on settings
 function updateUI() {
-    // 根据insertType设置开关状态
+    // Toggle switch state based on insertType
     $('#auto_generation').toggleClass(
         'selected',
         extension_settings[extensionName].insertType !== INSERT_TYPE.DISABLED,
     );
 
-    // 只在表单元素存在时更新它们
+    // Update form elements only if they exist
     if ($('#image_generation_insert_type').length) {
         $('#image_generation_insert_type').val(
             extension_settings[extensionName].insertType,
@@ -75,6 +76,10 @@ function updateUI() {
         $('#prompt_injection_enabled').prop(
             'checked',
             extension_settings[extensionName].promptInjection.enabled,
+        );
+        $('#prompt_generated_remove').prop(
+            'checked',
+            extension_settings[extensionName].promptInjection.remove,
         );
         $('#prompt_injection_text').val(
             extension_settings[extensionName].promptInjection.prompt,
@@ -91,20 +96,20 @@ function updateUI() {
     }
 }
 
-// 加载设置
+// Load settings
 async function loadSettings() {
     extension_settings[extensionName] = extension_settings[extensionName] || {};
 
-    // 如果设置为空或缺少必要属性，使用默认设置
+    // If settings are empty or missing necessary properties, use default settings
     if (Object.keys(extension_settings[extensionName]).length === 0) {
         Object.assign(extension_settings[extensionName], defaultSettings);
     } else {
-        // 确保promptInjection对象存在
+        // Ensure promptInjection object exists
         if (!extension_settings[extensionName].promptInjection) {
             extension_settings[extensionName].promptInjection =
                 defaultSettings.promptInjection;
         } else {
-            // 确保promptInjection的所有子属性都存在
+            // Ensure all sub-properties of promptInjection exist
             const defaultPromptInjection = defaultSettings.promptInjection;
             for (const key in defaultPromptInjection) {
                 if (
@@ -117,7 +122,7 @@ async function loadSettings() {
             }
         }
 
-        // 确保insertType属性存在
+        // Ensure insertType property exists
         if (extension_settings[extensionName].insertType === undefined) {
             extension_settings[extensionName].insertType =
                 defaultSettings.insertType;
@@ -127,19 +132,19 @@ async function loadSettings() {
     updateUI();
 }
 
-// 创建设置页面
+// Create settings page
 async function createSettings(settingsHtml) {
-    // 创建一个容器来存放设置，确保其正确显示在扩展设置面板中
+    // Create a container to hold the settings, ensuring it is correctly displayed in the extension settings panel
     if (!$('#image_auto_generation_container').length) {
         $('#extensions_settings2').append(
             '<div id="image_auto_generation_container" class="extension_container"></div>',
         );
     }
 
-    // 使用传入的settingsHtml而不是重新获取
+    // Use the passed settingsHtml instead of fetching it again
     $('#image_auto_generation_container').empty().append(settingsHtml);
 
-    // 添加设置变更事件处理
+    // Add event handlers for settings changes
     $('#image_generation_insert_type').on('change', function () {
         const newValue = $(this).val();
         extension_settings[extensionName].insertType = newValue;
@@ -147,9 +152,15 @@ async function createSettings(settingsHtml) {
         saveSettingsDebounced();
     });
 
-    // 添加提示词注入设置的事件处理
+    // Add event handlers for prompt injection settings
     $('#prompt_injection_enabled').on('change', function () {
         extension_settings[extensionName].promptInjection.enabled =
+            $(this).prop('checked');
+        saveSettingsDebounced();
+    });
+
+    $('#prompt_generated_remove').on('change', function () {
+        extension_settings[extensionName].promptInjection.remove =
             $(this).prop('checked');
         saveSettingsDebounced();
     });
@@ -171,7 +182,7 @@ async function createSettings(settingsHtml) {
         saveSettingsDebounced();
     });
 
-    // 深度设置事件处理
+    // Depth setting event handler
     $('#prompt_injection_depth').on('input', function () {
         const value = parseInt(String($(this).val()));
         extension_settings[extensionName].promptInjection.depth = isNaN(value)
@@ -180,26 +191,26 @@ async function createSettings(settingsHtml) {
         saveSettingsDebounced();
     });
 
-    // 初始化设置值
+    // Initialize setting values
     updateUI();
 }
 
-// 设置变更处理函数
+// Function to handle extension button click
 function onExtensionButtonClick() {
-    // 直接访问扩展设置面板
+    // Directly access the extensions settings panel
     const extensionsDrawer = $('#extensions-settings-button .drawer-toggle');
 
-    // 如果抽屉是关闭的，点击打开它
+    // If the drawer is closed, click to open it
     if ($('#rm_extensions_block').hasClass('closedDrawer')) {
         extensionsDrawer.trigger('click');
     }
 
-    // 等待抽屉打开后滚动到我们的设置容器
+    // Wait for the drawer to open and then scroll to our settings container
     setTimeout(() => {
-        // 找到我们的设置容器
+        // Find our settings container
         const container = $('#image_auto_generation_container');
         if (container.length) {
-            // 滚动到设置面板位置
+            // Scroll to the settings panel position
             $('#rm_extensions_block').animate(
                 {
                     scrollTop:
@@ -210,44 +221,44 @@ function onExtensionButtonClick() {
                 500,
             );
 
-            // 使用SillyTavern原生的抽屉展开方式
-            // 检查抽屉内容是否可见
+            // Use SillyTavern's native drawer expansion method
+            // Check if drawer content is visible
             const drawerContent = container.find('.inline-drawer-content');
             const drawerHeader = container.find('.inline-drawer-header');
 
-            // 只有当内容被隐藏时才触发展开
+            // Trigger expansion only if content is hidden
             if (drawerContent.is(':hidden') && drawerHeader.length) {
-                // 直接使用原生点击事件触发，而不做任何内部处理
+                // Directly use native click event to trigger without internal handling
                 drawerHeader.trigger('click');
             }
         }
     }, 500);
 }
 
-// 初始化扩展
+// Initialize extension
 $(function () {
     (async function () {
-        // 获取设置HTML (只获取一次)
+        // Fetch settings HTML (only once)
         const settingsHtml = await $.get(
             `${extensionFolderPath}/settings.html`,
         );
 
-        // 添加扩展到菜单
+        // Add extension to menu
         $('#extensionsMenu')
             .append(`<div id="auto_generation" class="list-group-item flex-container flexGap5">
             <div class="fa-solid fa-robot"></div>
             <span data-i18n="Image Auto Generation">Image Auto Generation</span>
         </div>`);
 
-        // 修改点击事件，打开设置面板而不是切换状态
+        // Modify click event to open settings panel instead of toggling state
         $('#auto_generation').off('click').on('click', onExtensionButtonClick);
 
         await loadSettings();
 
-        // 创建设置 - 将获取的HTML传递给createSettings
+        // Create settings - Pass the fetched HTML to createSettings
         await createSettings(settingsHtml);
 
-        // 确保设置面板可见时，设置值是正确的
+        // Ensure that when the settings panel is visible, the values are correct
         $('#extensions-settings-button').on('click', function () {
             setTimeout(() => {
                 updateUI();
@@ -255,15 +266,16 @@ $(function () {
         });
     })();
 });
-// 获取消息角色
+
+// Get message role
 function getMesRole() {
-    // 确保对象路径存在
+    // Ensure object path exists
     if (
         !extension_settings[extensionName] ||
         !extension_settings[extensionName].promptInjection ||
         !extension_settings[extensionName].promptInjection.position
     ) {
-        return 'system'; // 默认返回system角色
+        return 'system'; // Default to system role
     }
 
     switch (extension_settings[extensionName].promptInjection.position) {
@@ -278,12 +290,12 @@ function getMesRole() {
     }
 }
 
-// 监听CHAT_COMPLETION_PROMPT_READY事件以注入提示词
+// Listen to CHAT_COMPLETION_PROMPT_READY event to inject prompt
 eventSource.on(
     event_types.CHAT_COMPLETION_PROMPT_READY,
     async function (eventData) {
         try {
-            // 确保设置对象和promptInjection对象都存在
+            // Ensure settings object and promptInjection object both exist
             if (
                 !extension_settings[extensionName] ||
                 !extension_settings[extensionName].promptInjection ||
@@ -301,38 +313,38 @@ eventSource.on(
             const role = getMesRole();
 
             console.log(
-                `[${extensionName}] 准备注入提示词: 角色=${role}, 深度=${depth}`,
+                `[${extensionName}] Preparing to inject prompt: role=${role}, depth=${depth}`,
             );
             console.log(
-                `[${extensionName}] 提示词内容: ${prompt.substring(0, 50)}...`,
+                `[${extensionName}] Prompt content: ${prompt.substring(0, 50)}...`,
             );
 
-            // 根据depth参数决定插入位置
+            // Determine insertion position based on depth parameter
             if (depth === 0) {
-                // 添加到末尾
+                // Append to the end
                 eventData.chat.push({ role: role, content: prompt });
-                console.log(`[${extensionName}] 提示词已添加到聊天末尾`);
+                console.log(`[${extensionName}] Prompt added to the end of chat`);
             } else {
-                // 从末尾向前插入
+                // Insert from the end backwards
                 eventData.chat.splice(-depth, 0, {
                     role: role,
                     content: prompt,
                 });
                 console.log(
-                    `[${extensionName}] 提示词已插入到聊天中，从末尾往前第 ${depth} 个位置`,
+                    `[${extensionName}] Prompt inserted into chat at position ${depth} from the end`,
                 );
             }
         } catch (error) {
-            console.error(`[${extensionName}] 提示词注入错误:`, error);
-            toastr.error(`提示词注入错误: ${error}`);
+            console.error(`[${extensionName}] Prompt injection error:`, error);
+            toastr.error(`Prompt injection error: ${error}`);
         }
     },
 );
 
-// 监听消息接收事件
+// Listen to message received event
 eventSource.on(event_types.MESSAGE_RECEIVED, handleIncomingMessage);
 async function handleIncomingMessage() {
-    // 确保设置对象存在
+    // Ensure settings object exists
     if (
         !extension_settings[extensionName] ||
         extension_settings[extensionName].insertType === INSERT_TYPE.DISABLED
@@ -343,21 +355,21 @@ async function handleIncomingMessage() {
     const context = getContext();
     const message = context.chat[context.chat.length - 1];
 
-    // 检查是否是AI消息
+    // Check if it's an AI message
     if (!message || message.is_user) {
         return;
     }
 
-    // 确保promptInjection对象和regex属性存在
+    // Ensure promptInjection object and regex property exist
     if (
         !extension_settings[extensionName].promptInjection ||
         !extension_settings[extensionName].promptInjection.regex
     ) {
-        console.error('Prompt injection settings not properly initialized');
+        console.error(`[${extensionName}] Prompt injection settings not properly initialized`);
         return;
     }
 
-    // 使用正则表达式search
+    // Use regex search
     const imgTagRegex = regexFromString(
         extension_settings[extensionName].promptInjection.regex,
     );
@@ -369,26 +381,27 @@ async function handleIncomingMessage() {
         const singleMatch = message.mes.match(imgTagRegex);
         matches = singleMatch ? [singleMatch] : [];
     }
-    console.log(imgTagRegex, matches);
+    console.log(`[${extensionName}] ${imgTagRegex}`, matches);
     if (matches.length > 0) {
-        // 延迟执行图片生成，确保消息首先显示出来
+        // Delay image generation to ensure the message is displayed first
         setTimeout(async () => {
             try {
                 toastr.info(`Generating ${matches.length} images...`);
                 const insertType = extension_settings[extensionName].insertType;
+                const removePrompt = extension_settings[extensionName].promptInjection.remove;
 
-                // 在当前消息中插入图片
-                // 初始化message.extra
+                // Insert image into the current message
+                // Initialize message.extra
                 if (!message.extra) {
                     message.extra = {};
                 }
 
-                // 初始化image_swipes数组
+                // Initialize image_swipes array
                 if (!Array.isArray(message.extra.image_swipes)) {
                     message.extra.image_swipes = [];
                 }
 
-                // 如果已有图片，添加到swipes
+                // If there are existing images, add to swipes
                 if (
                     message.extra.image &&
                     !message.extra.image_swipes.includes(message.extra.image)
@@ -396,17 +409,30 @@ async function handleIncomingMessage() {
                     message.extra.image_swipes.push(message.extra.image);
                 }
 
-                // 获取消息元素用于稍后更新
+                // Get message element for later update
                 const messageElement = $(
                     `.mes[mesid="${context.chat.length - 1}"]`,
                 );
 
-                // 处理每个匹配的图片标签
+                // Process each matched image tag
+                let generatedImage = 0;
                 for (const match of matches) {
                     const prompt =
                         typeof match?.[1] === 'string' ? match[1] : '';
                     if (!prompt.trim()) {
                         continue;
+                    }
+
+                    let originalTag = typeof match?.[0] === 'string' ? match[0] : '';
+
+                    if (removePrompt && originalTag) {
+                        let prompt_nse = '<div class="img-auto-generation" title="' +  prompt + '">⚙️​🖼️⏳​</div>';
+                        message.mes = message.mes.replace(originalTag, prompt_nse);
+                        // Update the message display using updateMessageBlock
+                        updateMessageBlock(context.chat.length - 1, message);
+                        context.saveChat();
+                        
+                        originalTag = prompt_nse;
                     }
 
                     // @ts-ignore
@@ -421,70 +447,80 @@ async function handleIncomingMessage() {
                         },
                         prompt,
                     );
-                    // 统一插入到extra里
+                    
+                    let imageUrl = result;
+                    if (typeof imageUrl !== 'string' && imageUrl.trim().length == 0) {
+                        continue;
+                    }
+                    generatedImage++;
+                    
+                    // Uniformly insert into extra
                     if (insertType === INSERT_TYPE.INLINE) {
-                        let imageUrl = result;
-                        if (
-                            typeof imageUrl === 'string' &&
-                            imageUrl.trim().length > 0
-                        ) {
-                            // 添加图片到swipes数组
-                            message.extra.image_swipes.push(imageUrl);
+                          if (removePrompt) {
+                              // Remove the message
+                              message.mes = message.mes.replace(originalTag, "");
+                              // Update the message display using updateMessageBlock
+                              updateMessageBlock(context.chat.length - 1, message);
+                          }
+                        
+                          // Add image to swipes array
+                          message.extra.image_swipes.push(imageUrl);
 
-                            // 设置第一张图片为主图片，或更新为最新生成的图片
-                            message.extra.image = imageUrl;
-                            message.extra.title = prompt;
-                            message.extra.inline_image = true;
+                          // Set the first image as the main image, or update to the latest generated image
+                          message.extra.image = imageUrl;
+                          message.extra.title = prompt;
+                          message.extra.inline_image = true;
 
-                            // 更新UI
-                            appendMediaToMessage(message, messageElement);
+                          // Update UI
+                          appendMediaToMessage(message, messageElement);
 
-                            // 保存聊天记录
-                            await context.saveChat();
-                        }
+                          // Save chat history
+                          await context.saveChat();
                     } else if (insertType === INSERT_TYPE.REPLACE) {
-                        let imageUrl = result;
-                        if (
-                            typeof imageUrl === 'string' &&
-                            imageUrl.trim().length > 0
-                        ) {
-                            // Find the original image tag in the message
-                            const originalTag =
-                                typeof match?.[0] === 'string' ? match[0] : '';
-                            if (!originalTag) {
-                                continue;
-                            }
-                            // Replace it with an actual image tag
-                            const escapedUrl = escapeHtmlAttribute(imageUrl);
-                            const escapedPrompt = escapeHtmlAttribute(prompt);
-                            const newImageTag = `<img src="${escapedUrl}" title="${escapedPrompt}" alt="${escapedPrompt}">`;
-                            message.mes = message.mes.replace(
-                                originalTag,
-                                newImageTag,
-                            );
+                          if (!originalTag) {
+                              continue;
+                          }
+                          // Replace it with an actual image tag
+                          const escapedUrl = escapeHtmlAttribute(imageUrl);
+                          const escapedPrompt = escapeHtmlAttribute(prompt);
+                          const newImageTag = `<img src="${escapedUrl}" title="${escapedPrompt}" alt="${escapedPrompt}">`;
+                          message.mes = message.mes.replace(
+                              originalTag,
+                              newImageTag,
+                          );
 
-                            // Update the message display using updateMessageBlock
-                            updateMessageBlock(
-                                context.chat.length - 1,
-                                message,
-                            );
-                            await eventSource.emit(
-                                event_types.MESSAGE_UPDATED,
-                                context.chat.length - 1,
-                            );
+                          // Update the message display using updateMessageBlock
+                          updateMessageBlock(
+                              context.chat.length - 1,
+                              message,
+                          );
+                          await eventSource.emit(
+                              event_types.MESSAGE_UPDATED,
+                              context.chat.length - 1,
+                          );
 
-                            // Save the chat
-                            await context.saveChat();
+                          // Save the chat
+                          await context.saveChat();
+                    }
+                    else if (insertType === INSERT_TYPE.NEW_MESSAGE) {
+                        if (!removePrompt) {
+                          // Remove the message
+                          message.mes = message.mes.replace(originalTag, "");
+                          // Update the message display using updateMessageBlock
+                          updateMessageBlock(context.chat.length - 1, message);
                         }
+                          
+                        await context.saveChat();
                     }
                 }
                 toastr.success(
-                    `${matches.length} images generated successfully`,
+                    `${generatedImage} images generated successfully`,
                 );
             } catch (error) {
                 toastr.error(`Image generation error: ${error}`);
-                console.error('Image generation error:', error);
+                console.error(`[${extensionName}] Image generation error:`, error);
             }
-        }, 0); //防阻塞UI渲染
+        }, 0); // Prevent blocking UI rendering
     }
 }
+  
